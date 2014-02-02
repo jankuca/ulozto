@@ -1,0 +1,18 @@
+{
+  "name": "ulozto",
+  "version": "1.0.0",
+  "description": "uloz.to upload manager",
+
+  "main": "./main.js",
+  "bin": {
+    "ulozto": "./ulozto"
+  },
+
+  "dependencies": {
+    "async": "*",
+    "commander": "1.3.2",
+    "copy-paste": "*",
+    "form-data": "*",
+    "request": "*"
+  }
+}
