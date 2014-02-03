@@ -13,5 +13,6 @@ var ulozto = new Ulozto(program, file_manager, clipboard, http);
 
 program.command('upload <filename>').action(ulozto.uploadFile.bind(ulozto));
 program.command('rm [query]').action(ulozto.initFileRemoval.bind(ulozto));
+program.command('add').action(ulozto.initFileAddition.bind(ulozto));
 
 program.parse(process.argv);

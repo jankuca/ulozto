@@ -46,21 +46,7 @@ Ulozto.prototype.uploadFile = function (filename) {
     },
 
     function (upload, done) {
-      self.$file_manager.add(upload, function (err) {
-        if (err) {
-          console.error('Failed to save upload info. Please store the links yourself.');
-        }
-
-        self.$clipboard.copy(upload.url, function (err) {
-          if (err) {
-            console.error('  URL: %s', upload.url);
-          } else {
-            console.error('  URL: %s (copied to clipboard)', upload.url);
-          }
-          console.error('  Remove URL: %s', upload.remove_url);
-          done(null);
-        });
-      });
+      self.saveUploadedFile_(upload, done);
     }
   ], function (err) {
     if (err) {
@@ -69,6 +55,28 @@ Ulozto.prototype.uploadFile = function (filename) {
     } else {
       process.exit(0);
     }
+  });
+};
+
+
+Ulozto.prototype.saveUploadedFile_ = function (upload, callback) {
+  var self = this;
+
+  self.$file_manager.add(upload, function (err) {
+    if (err) {
+      console.error('Failed to save upload info. Please store the links yourself.');
+      callback(err);
+    }
+
+    self.$clipboard.copy(upload.url, function (err) {
+      if (err) {
+        console.error('  URL: %s', upload.url);
+      } else {
+        console.error('  URL: %s (copied to clipboard)', upload.url);
+      }
+      console.error('  Remove URL: %s', upload.remove_url);
+      callback(null);
+    });
   });
 };
 
@@ -116,6 +124,61 @@ Ulozto.prototype.initFileRemoval = function (query) {
 };
 
 
+Ulozto.prototype.initFileAddition = function (query) {
+  var self = this;
+  var cmd = new self.$program.Command();
+
+  async.waterfall([
+    function (done) {
+      cmd.promptSingleLine('URL: ', function (url) {
+        done(null, url);
+      });
+    },
+
+    function (url, done) {
+      if (/^http:\/\/uloz.to\/uploaded\//.test(url)) {
+        self.fetchUploadInfo_(url, function (err, upload) {
+          if (err) {
+            console.error('Failed to add file: ' + err.stack);
+            return process.exit(1);
+          }
+
+          self.saveUploadedFile_(upload, function (err) {
+            if (err) {
+              console.error('Failed to add file: ' + err.stack);
+              process.exit(1);
+            } else {
+              process.exit(0);
+            }
+          });
+        });
+        return;
+      }
+
+      cmd.promptSingleLine('Remove URL: ', function (remove_url) {
+        done(null, url, remove_url);
+      });
+    },
+
+    function (url, remove_url, done) {
+      var upload = new Upload();
+      upload.url = url;
+      upload.remove_url = remove_url;
+      upload.basename = path.basename(url).replace(/-(.*?)$/, '.$1');
+
+      self.saveUploadedFile_(upload, function (err) {
+        if (err) {
+          console.error('Failed to add file: ' + err.stack);
+          process.exit(1);
+        } else {
+          process.exit(0);
+        }
+      });
+    }
+  ]);
+};
+
+
 Ulozto.prototype.fetchUploadForm_ = function (callback) {
   var self = this;
 
@@ -143,6 +206,23 @@ Ulozto.prototype.uploadForm_ = function (form, callback) {
   var self = this;
 
   form.send(function (err, res, body) {
+    if (err) {
+      return callback(err, null);
+    }
+
+    var upload = self.getUploadInfoFromResult_(body);
+    if (!upload) {
+      return callback(new Error('Failed to read upload info'), null);
+    }
+    callback(null, upload);
+  });
+};
+
+
+Ulozto.prototype.fetchUploadInfo_ = function (url, callback) {
+  var self = this;
+
+  this.$http.get(url, function (err, res, body) {
     if (err) {
       return callback(err, null);
     }

@@ -1,6 +1,6 @@
 {
   "name": "ulozto",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "uloz.to upload manager",
 
   "main": "./main.js",

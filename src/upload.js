@@ -15,6 +15,7 @@ var Upload = function (data) {
 
 Upload.prototype.toJSON = function () {
   return {
+    'basename': this.basename,
     'url': this.url,
     'remove_url': this.remove_url,
     'tags': this.tags,
